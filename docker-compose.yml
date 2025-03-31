@@ -9,49 +9,30 @@ services:
       # Utilise le répertoire courant comme contexte de build
       context: .       
       # Fichier Dockerfile pour le build single-stage   
-      dockerfile: dockerfile  
-    image: api-ping:1.0 
-    # Nom explicite du conteneur  
-    container_name: ping-api-dev  
-    ports:
-      - "3000:3000"       
-    environment:
-      - PING_LISTEN_PORT=3000  
-      # Environnement Node.js
-      - NODE_ENV=development   
-    restart: unless-stopped  # Redémarrage automatique sauf arrêt manuel
-    user: "node"            
-    volumes:
-      - ./src:/app/src      
-    networks:
-      - ping-network       # Connexion au réseau dédié
-
-  # Service pour l'environnement de production (multi-stage)
-  api-multistage:
-    build:
-      context: .      
-      # Fichier Dockerfile multi-stage        
       dockerfile: dockerfile.multistage  
-    image: api-ping-prod:1.0   
-    container_name: ping-api-prod  
-    ports:
-      - "3001:3000"            # Port différent pour éviter les conflits
+    image: api-ping-prod:1.0      
     environment:
       - PING_LISTEN_PORT=3000
       # Environnement de production
-      - NODE_ENV=production    
-    restart: unless-stopped
-    user: "node"
+      - NODE_ENV=production  
+
+    # Connexion au réseau dédié     
     networks:
       - ping-network
-  
-  # Service bonus pour l'image ultra-légère
-  bonus:
-    build:
-      context: .
-      dockerfile: dockerfile.bonus  # Fichier Dockerfile spécial bonus
-    image: bonus    # Nom de l'image bonus
-    container_name: bonus
-    restart: on-failure       # Redémarrage seulement en cas d'échec
+    deploy:
+      replicas: 4    
+    
+  nginx:
+    image: nginx:alpine
+    ports:
+      - "8080:80"
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf
+    depends_on:
+      - api
     networks:
       - ping-network
+
+networks:
+  ping-network:
+    driver: bridge
