@@ -1,0 +1,35 @@
+# Dockerfile.multistage
+# Étape de build
+FROM node:20-alpine As builder
+
+WORKDIR /app
+
+COPY package*.json ./
+COPY tsconfig.json ./
+
+RUN npm install
+
+COPY src/ ./src/
+
+RUN npm run build
+
+# Étape d'exécution
+FROM node:20-alpine
+
+# Créer un utilisateur non-root
+RUN addgroup -S appgroup && adduser -S appuser -G appgroup
+
+WORKDIR /app
+
+# Copier uniquement ce qui est nécessaire depuis l'étape builder
+COPY --from=builder --chown=appuser:appgroup /app/dist/ ./dist/
+COPY --from=builder --chown=appuser:appgroup /app/package*.json ./
+
+# Installer les dépendances de production
+RUN npm install --production
+
+USER appuser
+
+EXPOSE ${PING_LISTEN_PORT:-3000}
+
+CMD ["node", "dist/index.js"]

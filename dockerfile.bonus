@@ -1,0 +1,3 @@
+FROM scratch
+ADD count /count
+CMD ["/count"]
